@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Il Mio Orto Veg</title>
-  <link rel="stylesheet" href="style.css?v=20260530-1" />
-  <script src="i18n.js?v=20260530-1"></script>
+  <link rel="stylesheet" href="style.css?v=20260530-7" />
+  <script src="i18n.js?v=20260530-7"></script>
 </head>
 <body>
   <div class="wrap">
@@ -37,6 +37,7 @@
 
     <!-- TAB OGGI -->
     <div id="tab-oggi" class="tab-content active">
+      <p class="tab-desc" id="desc-tab-oggi">Qui trovi il menu del giorno e una ricetta casuale con un click.</p>
       <section class="menu">
         <div class="etichetta" id="menu-data">Menù del giorno</div>
         <div id="menu-tema">—</div>
@@ -50,6 +51,7 @@
 
     <!-- TAB RICETTE -->
     <div id="tab-ricette" class="tab-content">
+      <p class="tab-desc" id="desc-tab-ricette">Cerca, filtra e salva le ricette che vuoi cucinare questa settimana.</p>
 
       <div class="esclusi-panel" id="esclusi-panel">
         <div class="esclusi-header" id="esclusi-toggle">
@@ -75,14 +77,18 @@
           <button class="chip" data-filtro="20">≤ 20 min</button>
           <button class="chip" data-filtro="30">≤ 30 min</button>
           <button class="chip" data-filtro="pref">♡ Preferite</button>
-          <button class="chip" data-filtro="pasta">Pasta</button>
-          <button class="chip" data-filtro="cereali">Cereali</button>
-          <button class="chip" data-filtro="legumi">Legumi</button>
-          <button class="chip" data-filtro="uova">Uova</button>
-          <button class="chip" data-filtro="comfort">Comfort</button>
-          <button class="chip" data-filtro="leggero">Leggero</button>
-          <button class="chip" data-filtro="speziato">Speziato</button>
-          <button class="chip" data-filtro="senza cottura">Senza cottura</button>
+          <button class="chip chip-extra" data-filtro="pasta">Pasta</button>
+          <button class="chip chip-extra" data-filtro="cereali">Cereali</button>
+          <button class="chip chip-extra" data-filtro="legumi">Legumi</button>
+          <button class="chip chip-extra" data-filtro="uova">Uova</button>
+          <button class="chip chip-extra" data-filtro="comfort">Comfort</button>
+          <button class="chip chip-extra" data-filtro="leggero">Leggero</button>
+          <button class="chip chip-extra" data-filtro="speziato">Speziato</button>
+          <button class="chip chip-extra" data-filtro="senza cottura">Senza cottura</button>
+        </div>
+        <div class="filtri-azioni">
+          <button class="btn-sm" id="toggle-chip-extra" type="button">Mostra altri filtri</button>
+          <button class="btn-sm" id="reset-filters" type="button">Reset filtri</button>
         </div>
       </div>
       <div id="griglia-ricette"></div>
@@ -90,11 +96,13 @@
 
     <!-- TAB SPESA -->
     <div id="tab-spesa" class="tab-content">
+      <p class="tab-desc" id="desc-tab-spesa">Aggiungi ingredienti, spunta quello che hai preso e ottimizza la lista.</p>
       <div id="area-spesa"></div>
     </div>
 
     <!-- TAB SETTIMANA -->
     <div id="tab-settimana" class="tab-content">
+      <p class="tab-desc" id="desc-tab-settimana">Pianifica i pasti giorno per giorno e apri ogni ricetta direttamente dal piano.</p>
       <div id="area-settimana"></div>
     </div>
 
@@ -168,8 +176,25 @@
       <div id="modal-lista"></div>
     </div>
   </div>
-
-  <script src="data.js?v=20260530-1"></script>
-  <script src="app.js?v=20260530-1"></script>
+  <!-- Onboarding primo accesso -->
+  <div id="modal-onboarding" class="modal-overlay hidden">
+    <div class="modal modal-onboarding-box">
+      <div class="modal-header">
+        <div class="etichetta" id="onboard-label" style="margin-bottom:0">Benvenuto</div>
+        <button class="modal-close" id="onboard-close">X</button>
+      </div>
+      <div class="onboarding-body">
+        <div class="onboarding-step" id="onboard-step">1/3</div>
+        <h3 class="onboarding-title" id="onboard-title">Il tuo menu quotidiano</h3>
+        <p class="ricetta-sub onboarding-text" id="onboard-text"></p>
+        <div class="onboarding-actions">
+          <button class="btn-sm" id="onboard-skip">Salta</button>
+          <button class="btn btn-primary" id="onboard-next">Avanti</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="data.js?v=20260530-7"></script>
+  <script src="app.js?v=20260530-7"></script>
 </body>
 </html>
