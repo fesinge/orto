@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Orto · la tua cucina vegetariana</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="i18n.js"></script>
 </head>
 <body>
   <div class="wrap">
@@ -19,7 +20,12 @@
         </svg>
       </div>
       <h1>Orto</h1>
-      <div class="tagline">la tua cucina vegetariana quotidiana</div>
+      <div class="tagline" id="tagline">la tua cucina vegetariana quotidiana</div>
+      <div class="lang-switcher">
+        <button class="lang-btn active" data-lang="it">IT</button>
+        <span class="lang-sep">·</span>
+        <button class="lang-btn" data-lang="en">EN</button>
+      </div>
     </header>
 
     <nav class="tabs" id="tabs">
