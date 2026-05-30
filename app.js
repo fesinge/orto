@@ -29,6 +29,10 @@ const TUTTI_TAG = [
   { id: "speziato",      tKey: "chip_speziato", cls: "tag-speziato"     },
 ];
 
+/* ---------- CODICI PREMIUM (cambia questi dopo ogni pagamento) ---------- */
+const CODICI_PREMIUM = new Set(["ORTO-PREMIUM", "MIOORTO2024", "VEGPRO-ONE"]);
+const STRIPE_LINK = "https://buy.stripe.com/INSERISCI-QUI-IL-TUO-LINK"; // ← sostituisci col tuo link
+
 /* ---------- COSTANTI PIANO ---------- */
 const GIORNI      = ["lun","mar","mer","gio","ven","sab","dom"];
 const PASTI_KEYS  = ["colazione","pranzo","cena"];
@@ -53,14 +57,31 @@ const stato = {
   filtriPiano: new Set(JSON.parse(localStorage.getItem("orto-filtri") || "[]")),
   modalFiltri: new Set(),
   esclusi: new Set(JSON.parse(localStorage.getItem("orto-esclusi") || "[]")),
+  premium: localStorage.getItem("orto-premium") === "1",
+  ricetteCustom: JSON.parse(localStorage.getItem("orto-custom") || "[]"),
+  pianoSettimane: [
+    JSON.parse(localStorage.getItem("orto-piano")   || "null") || initPiano(),
+    JSON.parse(localStorage.getItem("orto-piano-1") || "null") || initPiano(),
+    JSON.parse(localStorage.getItem("orto-piano-2") || "null") || initPiano(),
+    JSON.parse(localStorage.getItem("orto-piano-3") || "null") || initPiano(),
+  ],
+  settimanaCorrente: 0,
+  ricettaFormAperta: null, // id ricetta in modifica, null = nuova
 };
 
 /* ---------- PERSISTENZA ---------- */
 const salvaPreferiti = () => localStorage.setItem("orto-preferiti", JSON.stringify([...stato.preferiti]));
 const salvaSpesa     = () => localStorage.setItem("orto-spesa", JSON.stringify(stato.spesa));
-const salvaPiano     = () => localStorage.setItem("orto-piano", JSON.stringify(stato.piano));
 const salvaFiltri    = () => localStorage.setItem("orto-filtri", JSON.stringify([...stato.filtriPiano]));
 const salvaEsclusi   = () => localStorage.setItem("orto-esclusi", JSON.stringify([...stato.esclusi]));
+const salvaCustom    = () => localStorage.setItem("orto-custom", JSON.stringify(stato.ricetteCustom));
+
+function getPianoCorrente() { return stato.pianoSettimane[stato.settimanaCorrente]; }
+function salvaPiano() {
+  const key = stato.settimanaCorrente === 0 ? "orto-piano" : `orto-piano-${stato.settimanaCorrente}`;
+  localStorage.setItem(key, JSON.stringify(getPianoCorrente()));
+}
+function getTutteRicette() { return [...getRicette(), ...stato.ricetteCustom]; }
 
 /* ---------- I18N ---------- */
 const t = key => {
@@ -72,6 +93,8 @@ function getRicette()  { return stato.lang === "en" ? RICETTE_EN : RICETTE; }
 function getMenu()     { return stato.lang === "en" ? MENU_EN : MENU_GIORNO; }
 
 function getRicettaLocalizzata(titoloIT) {
+  const custom = stato.ricetteCustom.find(r => r.titolo === titoloIT);
+  if (custom) return custom;
   const idx = RICETTE.findIndex(r => r.titolo === titoloIT);
   if (idx === -1) return null;
   return stato.lang === "en" ? RICETTE_EN[idx] : RICETTE[idx];
@@ -112,6 +135,219 @@ function switchLang(lang) {
   if (stato.tab === "ricette")   { renderEsclusi(); renderGrigliaRicette(); }
   if (stato.tab === "spesa")     renderSpesa();
   if (stato.tab === "settimana") renderPiano();
+}
+
+/* ---------- SISTEMA PREMIUM ---------- */
+function mostraModalPremium(icona, nome, desc, callback) {
+  $("#premium-icon").textContent = icona;
+  $("#premium-nome").textContent = nome;
+  $("#premium-desc").textContent = desc;
+  $("#premium-link").href = STRIPE_LINK;
+  $("#premium-code-input").value = "";
+  $("#premium-errore").classList.add("hidden");
+  $("#modal-premium").classList.remove("hidden");
+  $("#modal-premium").dataset.callback = "";
+  $("#modal-premium")._callback = callback || null;
+}
+
+function verificaESblocca() {
+  const code = $("#premium-code-input").value.trim().toUpperCase();
+  if (!CODICI_PREMIUM.has(code)) {
+    $("#premium-errore").classList.remove("hidden");
+    return;
+  }
+  stato.premium = true;
+  localStorage.setItem("orto-premium", "1");
+  $("#modal-premium").classList.add("hidden");
+  mostraBadgePremium();
+  toast(stato.lang === "en" ? "⭐ Premium unlocked!" : "⭐ Premium sbloccato!");
+  if ($("#modal-premium")._callback) $("#modal-premium")._callback();
+}
+
+function mostraBadgePremium() {
+  if (!stato.premium) return;
+  if ($("#premium-badge")) return;
+  const badge = el("div", "premium-badge");
+  badge.id = "premium-badge";
+  badge.textContent = "⭐ Premium";
+  document.querySelector("header").appendChild(badge);
+}
+
+function richiediPremium(icona, nome, desc, callback) {
+  if (stato.premium) { callback(); return; }
+  mostraModalPremium(icona, nome, desc, callback);
+}
+
+/* ── Feature 1: Stampa lista spesa ── */
+function stampaListaSpesa() {
+  richiediPremium("📄",
+    stato.lang === "en" ? "Export shopping list" : "Esporta lista spesa",
+    stato.lang === "en" ? "Print or save a clean PDF of your shopping list." : "Stampa o salva un PDF pulito della tua lista della spesa.",
+    () => _stampaListaSpesa()
+  );
+}
+function _stampaListaSpesa() {
+  const fonti = {};
+  stato.spesa.forEach(i => { if (!fonti[i.fonte]) fonti[i.fonte] = []; fonti[i.fonte].push(i); });
+  let righe = "";
+  Object.entries(fonti).forEach(([fonte, items]) => {
+    const lab = fonte === "manuale" ? t("spesa_a_mano")
+      : fonte === "ottimizzato" ? (stato.lang === "en" ? "Merged" : "Uniti") : fonte;
+    righe += `<h3>${lab}</h3>`;
+    items.forEach(i => {
+      righe += `<div class="item${i.spuntato ? " done" : ""}"><div class="box"></div><span>${i.testo}${i.nFonti > 1 ? ` <small>(× ${i.nFonti})</small>` : ""}</span></div>`;
+    });
+  });
+  const w = window.open("", "_blank");
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Lista spesa — Il Mio Orto Veg</title>
+  <style>body{font-family:Georgia,serif;padding:40px;max-width:560px;margin:0 auto;color:#233D2C}
+  h1{font-size:26px;margin-bottom:4px}p.sub{color:#7C9070;font-size:13px;margin-bottom:28px}
+  h3{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#B0863C;margin:20px 0 8px}
+  .item{display:flex;align-items:flex-start;gap:12px;padding:8px 0;border-bottom:1px dotted #D9CFB8;font-size:15px}
+  .item.done span{text-decoration:line-through;opacity:.5}
+  .box{width:16px;height:16px;border:1.5px solid #7C9070;border-radius:3px;flex-shrink:0;margin-top:2px}
+  small{color:#7C9070;font-size:12px}
+  @media print{@page{margin:20mm}}</style></head>
+  <body><h1>🌿 Il Mio Orto Veg</h1>
+  <p class="sub">${stato.lang === "en" ? "Shopping list" : "Lista della spesa"} · ${new Date().toLocaleDateString(stato.lang === "en" ? "en-GB" : "it-IT")}</p>
+  ${righe}</body></html>`);
+  w.document.close();
+  setTimeout(() => w.print(), 300);
+}
+
+/* ── Feature 2: Ricette personali ── */
+function apriFormRicetta(idEsistente = null) {
+  richiediPremium("📝",
+    stato.lang === "en" ? "Personal recipes" : "Ricette personali",
+    stato.lang === "en" ? "Save your own recipes alongside the built-in ones." : "Salva le tue ricette accanto a quelle del ricettario.",
+    () => _apriFormRicetta(idEsistente)
+  );
+}
+function _apriFormRicetta(idEsistente) {
+  stato.ricettaFormAperta = idEsistente;
+  const r = idEsistente ? stato.ricetteCustom.find(x => x._id === idEsistente) : null;
+
+  // build tag checkboxes
+  const frTags = $("#fr-tags");
+  frTags.innerHTML = "";
+  TUTTI_TAG.forEach(tag => {
+    const active = r && (r.tags || []).includes(tag.id);
+    const chip = el("button", "chip" + (active ? " active" : ""), t(tag.tKey));
+    chip.dataset.tagId = tag.id;
+    chip.type = "button";
+    chip.onclick = () => chip.classList.toggle("active");
+    frTags.appendChild(chip);
+  });
+
+  $("#fr-titolo").value = r ? r.titolo : "";
+  $("#fr-sub").value = r ? (r.sottotitolo || "") : "";
+  $("#fr-tempo").value = r ? r.tempo.replace(/\D/g,"") : "";
+  $("#fr-porzioni").value = r ? r.porzioni : "";
+  $("#fr-ingredienti").value = r ? r.ingredienti.map(i => i.t).join("\n") : "";
+  $("#fr-passi").value = r ? r.passi.join("\n") : "";
+  $("#fr-consiglio").value = r ? (r.consiglio || "") : "";
+  $("#fr-errore").classList.add("hidden");
+  $("#modal-form-ricetta").classList.remove("hidden");
+}
+
+function chiudiFormRicetta() { $("#modal-form-ricetta").classList.add("hidden"); }
+
+function salvaRicettaCustom() {
+  const titolo = $("#fr-titolo").value.trim();
+  const tempo  = $("#fr-tempo").value.trim();
+  const porzioni = parseInt($("#fr-porzioni").value);
+  const ingTesto = $("#fr-ingredienti").value.trim();
+  const passiTesto = $("#fr-passi").value.trim();
+
+  if (!titolo || !tempo || !porzioni || !ingTesto || !passiTesto) {
+    $("#fr-errore").classList.remove("hidden"); return;
+  }
+
+  const tags = [...$("#fr-tags").querySelectorAll(".chip.active")].map(c => c.dataset.tagId);
+  const ingredienti = ingTesto.split("\n").filter(l => l.trim()).map(l => ({ t: l.trim(), key: [norm(l)] }));
+  const passi = passiTesto.split("\n").filter(l => l.trim()).map(l => l.trim());
+
+  const r = {
+    _id: stato.ricettaFormAperta || Date.now(),
+    titolo, tags,
+    sottotitolo: $("#fr-sub").value.trim() || null,
+    tempo: tempo + " min",
+    porzioni,
+    ingredienti,
+    passi,
+    consiglio: $("#fr-consiglio").value.trim() || null,
+    _custom: true,
+  };
+
+  if (stato.ricettaFormAperta) {
+    const idx = stato.ricetteCustom.findIndex(x => x._id === stato.ricettaFormAperta);
+    if (idx !== -1) stato.ricetteCustom[idx] = r;
+  } else {
+    stato.ricetteCustom.push(r);
+  }
+
+  salvaCustom();
+  chiudiFormRicetta();
+  renderGrigliaRicette();
+  toast(stato.lang === "en" ? "Recipe saved!" : "Ricetta salvata!");
+}
+
+function eliminaRicettaCustom(id) {
+  stato.ricetteCustom = stato.ricetteCustom.filter(r => r._id !== id);
+  salvaCustom();
+  renderGrigliaRicette();
+}
+
+/* ── Feature 3: Piano mensile (settimane 2-4) ── */
+function selezionaSettimana(n) {
+  if (n > 0 && !stato.premium) {
+    richiediPremium("📅",
+      stato.lang === "en" ? "Monthly planner" : "Piano mensile",
+      stato.lang === "en" ? "Plan your meals for 4 full weeks." : "Pianifica i pasti per 4 settimane complete.",
+      () => { stato.settimanaCorrente = n; renderPiano(); }
+    );
+    return;
+  }
+  stato.settimanaCorrente = n;
+  renderPiano();
+}
+
+/* ── Feature 4: Stampa ricetta ── */
+function stampaRicetta(r) {
+  richiediPremium("🖨️",
+    stato.lang === "en" ? "Print recipe" : "Stampa ricetta",
+    stato.lang === "en" ? "Print a beautiful recipe card to keep in your kitchen." : "Stampa una scheda ricetta da tenere in cucina.",
+    () => _stampaRicetta(r)
+  );
+}
+function _stampaRicetta(r) {
+  const ingHtml = r.ingredienti.map(i => `<li>${i.t || i}</li>`).join("");
+  const passiHtml = r.passi.map((p, i) => `<li><span class="n">${i+1}</span>${p}</li>`).join("");
+  const w = window.open("", "_blank");
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${r.titolo}</title>
+  <style>body{font-family:Georgia,serif;padding:40px;max-width:560px;margin:0 auto;color:#233D2C}
+  h1{font-size:28px;line-height:1.1;margin-bottom:6px}
+  .sub{color:#4A6150;font-style:italic;margin-bottom:16px}
+  .meta{font-size:13px;color:#7C9070;margin-bottom:24px}
+  h2{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#B0863C;margin:24px 0 10px}
+  ul,ol{padding-left:0;list-style:none}
+  ul li{padding:6px 0;border-bottom:1px dotted #D9CFB8;font-size:15px}
+  ol li{display:flex;gap:12px;padding:7px 0;font-size:15px;line-height:1.5}
+  .n{color:#C25B3A;font-size:18px;font-weight:bold;min-width:22px;flex-shrink:0}
+  .tip{margin-top:20px;padding:12px 14px;background:#EFEAD9;border-radius:8px;font-size:14px;color:#4A6150}
+  .footer{margin-top:32px;font-size:11px;color:#7C9070;text-align:center}
+  @media print{@page{margin:20mm}}</style></head>
+  <body>
+  <h1>${r.titolo}</h1>
+  ${r.sottotitolo ? `<p class="sub">${r.sottotitolo}</p>` : ""}
+  <p class="meta">⏱ ${r.tempo} &nbsp;·&nbsp; 🍽 ${r.porzioni} ${stato.lang === "en" ? "servings" : "porzioni"}</p>
+  <h2>${t("label_ti_servono")}</h2><ul>${ingHtml}</ul>
+  <h2>${t("label_procedimento")}</h2><ol>${passiHtml}</ol>
+  ${r.consiglio ? `<div class="tip"><strong>${t("label_consiglio")}</strong>${r.consiglio}</div>` : ""}
+  <p class="footer">🌿 Il Mio Orto Veg</p>
+  </body></html>`);
+  w.document.close();
+  setTimeout(() => w.print(), 300);
 }
 
 /* ---------- HELPER TAG ---------- */
@@ -358,6 +594,9 @@ function cardRicetta(r, tag, mancanti) {
   const bSpesa = el("button", "btn-sm", t("btn_spesa"));
   bSpesa.onclick = () => aggiungiRicettaAllaSpesa(r);
   btns.appendChild(bSpesa);
+  const bStampa = el("button", "btn-sm" + (stato.premium ? "" : " btn-locked"), stato.lang === "en" ? "🖨 Print" : "🖨 Stampa");
+  bStampa.onclick = () => stampaRicetta(r);
+  btns.appendChild(bStampa);
   card.appendChild(btns);
 
   return card;
@@ -560,6 +799,36 @@ function renderGrigliaRicette() {
     return;
   }
 
+  // bottone aggiungi ricetta personale
+  const addBtn = el("button", "btn btn-ghost" + (stato.premium ? "" : " btn-locked"), stato.lang === "en" ? "✏️ Add your own recipe" : "✏️ Aggiungi la tua ricetta");
+  addBtn.style.marginBottom = "16px";
+  addBtn.onclick = () => apriFormRicetta();
+  grid.appendChild(addBtn);
+
+  // ricette custom
+  stato.ricetteCustom.forEach(r => {
+    if (ricettaEsclusa(r)) return;
+    const card = el("div", "card-compact fadein");
+    const header = el("div", "card-compact-header");
+    const info = el("div", "card-compact-info");
+    const titleRow = el("div", "");
+    titleRow.innerHTML = `<span class="card-compact-title">${r.titolo}</span><span class="card-custom-badge">mia</span>`;
+    info.appendChild(titleRow);
+    info.appendChild(el("div", "card-compact-meta", `⏱ ${r.tempo} · 🍽 ${r.porzioni} ${stato.lang === "en" ? "servings" : "porzioni"}`));
+    header.appendChild(info);
+    const actions = el("div", "card-compact-actions");
+    const editBtn = el("button", "btn-heart", "✏️");
+    editBtn.onclick = e => { e.stopPropagation(); _apriFormRicetta(r._id); };
+    const delBtn = el("button", "btn-heart", "🗑");
+    delBtn.onclick = e => { e.stopPropagation(); eliminaRicettaCustom(r._id); };
+    actions.appendChild(editBtn); actions.appendChild(delBtn);
+    header.appendChild(actions);
+    header.onclick = () => toggleCardCompact(card, r, r.titolo);
+    card.appendChild(header);
+    card.appendChild(el("div", "card-compact-body"));
+    grid.appendChild(card);
+  });
+
   filtrate.forEach((r, fi) => {
     if (ricettaEsclusa(r)) return;
     // indice nella lista italiana per il check preferiti
@@ -708,6 +977,9 @@ function renderSpesa() {
   });
 
   const azioni = el("div", "spesa-azioni fadein");
+  const pdfBtn = el("button", "btn-sm" + (stato.premium ? "" : " btn-locked"), stato.lang === "en" ? "📄 Export PDF" : "📄 Esporta PDF");
+  pdfBtn.onclick = stampaListaSpesa;
+  azioni.appendChild(pdfBtn);
   const ottBtn = el("button", "btn-sm btn-sm-solid", stato.lang === "en" ? "✦ Optimise list" : "✦ Ottimizza lista");
   ottBtn.title = stato.lang === "en" ? "Merge duplicate ingredients across recipes" : "Unisce gli stessi ingredienti di ricette diverse";
   ottBtn.onclick = ottimizzaLista;
@@ -850,6 +1122,18 @@ function renderPiano() {
   filtriBox.appendChild(descFiltro);
   area.appendChild(filtriBox);
 
+  // week selector
+  const weekSel = el("div", "week-selector");
+  const weekLabels = stato.lang === "en"
+    ? ["Week 1","Week 2","Week 3","Week 4"]
+    : ["Sett. 1","Sett. 2","Sett. 3","Sett. 4"];
+  weekLabels.forEach((label, i) => {
+    const btn = el("button", "week-btn" + (i === stato.settimanaCorrente ? " active" : "") + (i > 0 && !stato.premium ? " locked" : ""), label);
+    btn.onclick = () => selezionaSettimana(i);
+    weekSel.appendChild(btn);
+  });
+  area.appendChild(weekSel);
+
   const GIORNI_NOMI = t("giorni");
   const PASTI_NOMI  = t("pasti");
 
@@ -859,7 +1143,7 @@ function renderPiano() {
     const pasti = el("div", "piano-pasti");
     PASTI_KEYS.forEach((p, pi) => {
       const slot = el("div", "piano-slot");
-      const titoloIT = stato.piano[g][p];
+      const titoloIT = getPianoCorrente()[g][p];
       slot.appendChild(el("div", "piano-slot-pasto", PASTI_NOMI[pi]));
       if (titoloIT) {
         slot.classList.add("pieno");
@@ -885,20 +1169,20 @@ function riempiPianoAuto() {
   const pool = senzaEscluse.length > 0 ? [...senzaEscluse] : (conTag.length > 0 ? [...conTag] : [...RICETTE]);
   pool.sort(() => Math.random() - 0.5);
   let idx = 0;
-  GIORNI.forEach(g => { PASTI_KEYS.forEach(p => { stato.piano[g][p] = pool[idx % pool.length].titolo; idx++; }); });
+  GIORNI.forEach(g => { PASTI_KEYS.forEach(p => { getPianoCorrente()[g][p] = pool[idx % pool.length].titolo; idx++; }); });
   salvaPiano(); renderPiano();
   toast(t("toast_piano"));
 }
 
-function svuotaPiano() { stato.piano = initPiano(); salvaPiano(); renderPiano(); }
+function svuotaPiano() { stato.pianoSettimane[stato.settimanaCorrente] = initPiano(); salvaPiano(); renderPiano(); }
 
-function rimuoviDalPiano(giorno, pasto) { stato.piano[giorno][pasto] = null; salvaPiano(); renderPiano(); }
+function rimuoviDalPiano(giorno, pasto) { getPianoCorrente()[giorno][pasto] = null; salvaPiano(); renderPiano(); }
 
 function aggiungiSettimanaAllaSpesa() {
   let aggiunti = 0;
   GIORNI.forEach(g => {
     PASTI_KEYS.forEach(p => {
-      const titoloIT = stato.piano[g][p];
+      const titoloIT = getPianoCorrente()[g][p];
       if (!titoloIT) return;
       const rIT = RICETTE.find(r => r.titolo === titoloIT);
       const rLoc = getRicettaLocalizzata(titoloIT);
@@ -941,7 +1225,7 @@ function renderModalLista() {
 
   if (stato.slotAperto) {
     const { giorno, pasto } = stato.slotAperto;
-    if (stato.piano[giorno][pasto]) {
+    if (getPianoCorrente()[giorno][pasto]) {
       const rimuovi = el("div", "modal-ricetta-item modal-rimuovi");
       rimuovi.innerHTML = `<span><div class="modal-ricetta-nome">${t("modal_rimuovi")}</div></span>`;
       rimuovi.onclick = () => { rimuoviDalPiano(giorno, pasto); chiudiModal(); };
@@ -980,7 +1264,7 @@ function renderModalLista() {
     item.onclick = () => {
       if (!stato.slotAperto) return;
       const { giorno, pasto } = stato.slotAperto;
-      stato.piano[giorno][pasto] = rIT.titolo; // sempre italiano come chiave
+      getPianoCorrente()[giorno][pasto] = rIT.titolo; // sempre italiano come chiave
       salvaPiano(); renderPiano(); chiudiModal();
     };
     lista.appendChild(item);
@@ -1023,4 +1307,19 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#modal-cerca").addEventListener("input", e => { stato.modalCerca = e.target.value; renderModalLista(); });
 
   $$(".lang-btn").forEach(b => b.addEventListener("click", () => switchLang(b.dataset.lang)));
+
+  // premium modal
+  $("#premium-close").addEventListener("click", () => $("#modal-premium").classList.add("hidden"));
+  $("#modal-premium").addEventListener("click", e => { if (e.target === $("#modal-premium")) $("#modal-premium").classList.add("hidden"); });
+  $("#premium-code-btn").addEventListener("click", verificaESblocca);
+  $("#premium-code-input").addEventListener("keydown", e => { if (e.key === "Enter") verificaESblocca(); });
+
+  // form ricetta personale
+  $("#form-ricetta-close").addEventListener("click", chiudiFormRicetta);
+  $("#modal-form-ricetta").addEventListener("click", e => { if (e.target === $("#modal-form-ricetta")) chiudiFormRicetta(); });
+  $("#fr-salva").addEventListener("click", salvaRicettaCustom);
+  $("#fr-annulla").addEventListener("click", chiudiFormRicetta);
+
+  // mostra badge se già premium
+  mostraBadgePremium();
 });

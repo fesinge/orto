@@ -101,6 +101,57 @@
     <p class="piedino">Il menù cambia ogni giorno · tutte le ricette sono vegetariane</p>
   </div>
 
+  <!-- Modal Premium -->
+  <div id="modal-premium" class="modal-overlay hidden">
+    <div class="modal modal-premium-box">
+      <div class="modal-header">
+        <div class="etichetta" style="margin-bottom:0">⭐ Funzione Premium</div>
+        <button class="modal-close" id="premium-close">✕</button>
+      </div>
+      <div class="premium-body">
+        <div class="premium-icon" id="premium-icon">🔒</div>
+        <div class="premium-nome" id="premium-nome"></div>
+        <p class="ricetta-sub" id="premium-desc"></p>
+        <a class="btn btn-primary premium-acquista" id="premium-link" href="#" target="_blank">
+          ⭐ Sblocca Premium — 2,99 €
+        </a>
+        <div class="premium-sep"><span>oppure inserisci il tuo codice</span></div>
+        <div class="premium-code-row">
+          <input id="premium-code-input" type="text" placeholder="Es. ORTO-PREMIUM" autocomplete="off" />
+          <button class="btn-sm btn-sm-solid" id="premium-code-btn">Sblocca</button>
+        </div>
+        <p class="premium-errore hidden" id="premium-errore">Codice non valido. Riprova.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Aggiungi Ricetta Personale -->
+  <div id="modal-form-ricetta" class="modal-overlay hidden">
+    <div class="modal modal-form-box">
+      <div class="modal-header">
+        <div class="etichetta" style="margin-bottom:0">✏️ La tua ricetta</div>
+        <button class="modal-close" id="form-ricetta-close">✕</button>
+      </div>
+      <div class="form-ricetta-body">
+        <input id="fr-titolo" type="text" placeholder="Titolo *" />
+        <input id="fr-sub" type="text" placeholder="Sottotitolo (opzionale)" />
+        <div class="fr-row">
+          <input id="fr-tempo" type="number" placeholder="Tempo (min) *" min="1" />
+          <input id="fr-porzioni" type="number" placeholder="Porzioni *" min="1" />
+        </div>
+        <div class="fr-tags" id="fr-tags"></div>
+        <textarea id="fr-ingredienti" rows="5" placeholder="Ingredienti, uno per riga *&#10;es. 2 uova&#10;1 cipolla&#10;200 g di spinaci"></textarea>
+        <textarea id="fr-passi" rows="5" placeholder="Passaggi, uno per riga *&#10;es. Taglia la cipolla&#10;Scalda l'olio in padella"></textarea>
+        <input id="fr-consiglio" type="text" placeholder="Consiglio finale (opzionale)" />
+        <div class="fr-azioni">
+          <button class="btn btn-primary" id="fr-salva">✓ Salva ricetta</button>
+          <button class="btn-sm" id="fr-annulla">Annulla</button>
+        </div>
+        <p class="premium-errore hidden" id="fr-errore">Compila i campi obbligatori (*).</p>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal selezione ricetta piano -->
   <div id="modal-overlay" class="modal-overlay hidden">
     <div class="modal" id="modal">

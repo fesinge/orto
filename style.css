@@ -541,6 +541,73 @@ textarea:focus { outline: none; border-color: var(--sage); }
 .modal-rimuovi { color: var(--accent); }
 .modal-rimuovi .modal-ricetta-nome { color: var(--accent); font-style: italic; }
 
+/* ── PREMIUM ── */
+.premium-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: linear-gradient(135deg, #B0863C, #D4A855);
+  color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; border-radius: 999px; padding: 3px 10px;
+  margin-top: 8px; cursor: default;
+}
+.modal-premium-box { max-height: 90vh; border-radius: 20px 20px 0 0; }
+.premium-body { padding: 0 24px 32px; text-align: center; }
+.premium-icon { font-size: 44px; margin-bottom: 10px; }
+.premium-nome { font-family: var(--serif); font-size: 22px; font-weight: 600; color: var(--ink); margin-bottom: 8px; }
+.premium-acquista {
+  display: block; margin: 18px 0 16px; border-radius: 999px;
+  background: linear-gradient(135deg, #B0863C, #D4A855); color: #fff; text-decoration: none;
+  padding: 14px 24px; font-size: 15px; font-weight: 700;
+}
+.premium-sep { display: flex; align-items: center; gap: 12px; margin: 4px 0 14px; color: var(--sage); font-size: 12px; }
+.premium-sep::before, .premium-sep::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.premium-code-row { display: flex; gap: 8px; }
+.premium-code-row input {
+  flex: 1; border: 1.5px solid var(--line); border-radius: 10px;
+  padding: 10px 14px; font-size: 14px; font-family: var(--sans); color: var(--ink);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.premium-code-row input:focus { outline: none; border-color: var(--gold); }
+.premium-errore { color: var(--accent); font-size: 13px; margin-top: 10px; }
+.premium-errore.hidden { display: none; }
+
+/* lock overlay su pulsanti premium */
+.btn-locked { position: relative; opacity: 0.6; cursor: pointer; }
+.btn-locked::after { content: '⭐'; font-size: 11px; margin-left: 5px; }
+
+/* ── FORM RICETTA PERSONALE ── */
+.modal-form-box { max-height: 92vh; border-radius: 20px 20px 0 0; }
+.form-ricetta-body {
+  padding: 0 24px 32px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.form-ricetta-body input, .form-ricetta-body textarea {
+  width: 100%; border: 1.5px solid var(--line); border-radius: 10px;
+  padding: 10px 13px; font-size: 14px; font-family: var(--sans);
+  color: var(--ink); background: var(--paper); resize: vertical;
+}
+.form-ricetta-body input:focus, .form-ricetta-body textarea:focus { outline: none; border-color: var(--sage); }
+.fr-row { display: flex; gap: 8px; }
+.fr-row input { flex: 1; }
+.fr-tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0; }
+.fr-tags .chip { font-size: 11px; padding: 4px 10px; }
+.fr-azioni { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.card-custom-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  background: linear-gradient(135deg, #B0863C, #D4A855); color: #fff;
+  padding: 2px 7px; border-radius: 999px; margin-left: 6px;
+}
+
+/* ── WEEK SELECTOR ── */
+.week-selector { display: flex; gap: 4px; margin-bottom: 16px; }
+.week-btn {
+  flex: 1; padding: 8px 6px; border-radius: 10px; border: 1.5px solid var(--line);
+  background: var(--paper); font-family: var(--sans); font-size: 12px; font-weight: 600;
+  color: var(--ink-soft); cursor: pointer; transition: all .15s; text-align: center;
+}
+.week-btn.active { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.week-btn.locked { opacity: 0.5; }
+.week-btn.locked::after { content: ' ⭐'; font-size: 10px; }
+
 /* ── TOAST ── */
 .feedback-toast {
   position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
