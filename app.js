@@ -683,13 +683,22 @@ function renderSpesa() {
   const ordine = Object.keys(fonti).sort(a => a === "manuale" ? 1 : -1);
   ordine.forEach(fonte => {
     const sez = el("div", "spesa-sezione fadein");
-    sez.appendChild(el("div", "spesa-fonte", fonte === "manuale" ? t("spesa_a_mano") : fonte));
+    const fonteLabel = fonte === "manuale" ? t("spesa_a_mano")
+      : fonte === "ottimizzato" ? (stato.lang === "en" ? "Merged ingredients" : "Ingredienti uniti")
+      : fonte;
+    sez.appendChild(el("div", "spesa-fonte", fonteLabel));
     fonti[fonte].forEach(item => {
       const row = el("div", "spesa-item" + (item.spuntato ? " spuntato" : ""));
       const cb = el("input"); cb.type = "checkbox"; cb.checked = item.spuntato;
       cb.onchange = () => toggleSpuntato(item.id);
       row.appendChild(cb);
-      row.appendChild(el("span", "spesa-testo", item.testo));
+      const testoEl = el("span", "spesa-testo", item.testo);
+      row.appendChild(testoEl);
+      if (item.merged && item.nFonti > 1) {
+        const badge = el("span", "badge-fonti", `× ${item.nFonti}`);
+        badge.title = (stato.lang === "en" ? "Needed in: " : "Serve in: ") + item.fontiOriginali.join(", ");
+        row.appendChild(badge);
+      }
       const del = el("button", "btn-del-item", "×");
       del.onclick = () => rimuoviItem(item.id);
       row.appendChild(del);
@@ -699,6 +708,10 @@ function renderSpesa() {
   });
 
   const azioni = el("div", "spesa-azioni fadein");
+  const ottBtn = el("button", "btn-sm btn-sm-solid", stato.lang === "en" ? "✦ Optimise list" : "✦ Ottimizza lista");
+  ottBtn.title = stato.lang === "en" ? "Merge duplicate ingredients across recipes" : "Unisce gli stessi ingredienti di ricette diverse";
+  ottBtn.onclick = ottimizzaLista;
+  azioni.appendChild(ottBtn);
   const copiaBtn = el("button", "btn-sm", t("btn_copia"));
   copiaBtn.onclick = copiaLista;
   azioni.appendChild(copiaBtn);
@@ -706,6 +719,77 @@ function renderSpesa() {
   svuotaBtn.onclick = svuotaLista;
   azioni.appendChild(svuotaBtn);
   area.appendChild(azioni);
+}
+
+/* ---------- OTTIMIZZA LISTA SPESA ---------- */
+function normalizzaBase(testo) {
+  return norm(testo)
+    // rimuovi quantità iniziali: "300 g di", "2 lattine di", "1 cucchiaio di" ecc.
+    .replace(/^\d+[\.,]?\d*\s*/, "")
+    .replace(/\b(g|kg|ml|cl|dl|gr|oz|cucchiai[o]?|cucchiaino|lattine?|spicch[io]|foglie?|manciata|pezzo|goccio|rotolo|mazzo|tsp|tbsp|cup|can|cans|clove|cloves|handful|slice|slices|tbsp|tsp)\b/g, "")
+    .replace(/\bdi\b|\bda\b|\bper\b/g, "")
+    .replace(/\s+/g, " ").trim();
+}
+
+function estraQuantita(testo) {
+  const m = norm(testo).match(/^(\d+[\.,]?\d*)\s*(g|kg|ml|cl|dl|gr|oz)?/);
+  if (!m) return null;
+  return { n: parseFloat(m[1].replace(",",".")), unit: m[2] || "" };
+}
+
+function ottimizzaLista() {
+  if (stato.spesa.length === 0) return;
+
+  const gruppi = {}; // base → [items]
+  stato.spesa.forEach(item => {
+    const base = normalizzaBase(item.testo);
+    if (!gruppi[base]) gruppi[base] = [];
+    gruppi[base].push(item);
+  });
+
+  const nuovaSpesa = [];
+  let mergeCount = 0;
+
+  Object.entries(gruppi).forEach(([base, items]) => {
+    if (items.length === 1) {
+      nuovaSpesa.push({ ...items[0], merged: false });
+      return;
+    }
+    mergeCount += items.length - 1;
+
+    // tenta di sommare quantità se hanno stessa unità
+    const quantita = items.map(i => estraQuantita(i.testo)).filter(Boolean);
+    const stessaUnit = quantita.length === items.length && new Set(quantita.map(q => q.unit)).size === 1;
+
+    let testoMerged;
+    if (stessaUnit && quantita.length > 0) {
+      const totale = quantita.reduce((s, q) => s + q.n, 0);
+      const unit = quantita[0].unit;
+      testoMerged = `${totale % 1 === 0 ? totale : totale.toFixed(1)}${unit ? " " + unit + " di " : " "}${base}`;
+    } else {
+      testoMerged = items[0].testo; // usa il testo della prima voce
+    }
+
+    const fonti = [...new Set(items.map(i => i.fonte))];
+    nuovaSpesa.push({
+      id: items[0].id,
+      testo: testoMerged,
+      spuntato: items.every(i => i.spuntato),
+      fonte: "ottimizzato",
+      fontiOriginali: fonti,
+      nFonti: items.length,
+      merged: true,
+    });
+  });
+
+  stato.spesa = nuovaSpesa;
+  salvaSpesa();
+  aggiornaBadge();
+  renderSpesa();
+  const msg = stato.lang === "en"
+    ? `✓ ${mergeCount} duplicate${mergeCount !== 1 ? "s" : ""} merged`
+    : `✓ ${mergeCount} duplicat${mergeCount !== 1 ? "i uniti" : "o unito"}`;
+  toast(msg);
 }
 
 function aggiungiManuale(input) {
