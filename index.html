@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orto · la tua cucina vegetariana</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+
+    <header>
+      <div class="sprig">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+          <path d="M12 22V7" stroke="#7C9070" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M12 11c-2.4 0-4-1.6-4-4 2.4 0 4 1.6 4 4z" fill="#7C9070" opacity="0.9"/>
+          <path d="M12 9c2.4 0 4-1.6 4-4-2.4 0-4 1.6-4 4z" fill="#7C9070" opacity="0.7"/>
+          <path d="M12 15c-2.6 0-4.4-1.8-4.4-4.4 2.6 0 4.4 1.8 4.4 4.4z" fill="#7C9070" opacity="0.55"/>
+        </svg>
+      </div>
+      <h1>Orto</h1>
+      <div class="tagline">la tua cucina vegetariana quotidiana</div>
+    </header>
+
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="oggi">Oggi</button>
+      <button class="tab" data-tab="ricette">Ricette</button>
+      <button class="tab" data-tab="spesa">Spesa <span class="badge" id="badge-spesa"></span></button>
+      <button class="tab" data-tab="settimana">Settimana</button>
+    </nav>
+
+    <!-- TAB OGGI -->
+    <div id="tab-oggi" class="tab-content active">
+      <section class="menu">
+        <div class="etichetta" id="menu-data">Menù del giorno</div>
+        <div id="menu-tema">—</div>
+        <div id="menu-righe"></div>
+      </section>
+      <div id="area-menu-ricetta"></div>
+      <button class="btn btn-primary" id="btn-random">🎲  Sorprendimi con una ricetta</button>
+      <div id="area-ricetta"></div>
+      <div id="area-swap"></div>
+    </div>
+
+    <!-- TAB RICETTE -->
+    <div id="tab-ricette" class="tab-content">
+
+      <div class="esclusi-panel" id="esclusi-panel">
+        <div class="esclusi-header" id="esclusi-toggle">
+          <div class="piano-filtri-titolo" style="margin:0">Ingredienti da evitare</div>
+          <span class="esclusi-count" id="esclusi-count"></span>
+          <span class="esclusi-chevron" id="esclusi-chevron">▾</span>
+        </div>
+        <div class="esclusi-body" id="esclusi-body">
+          <p class="ricetta-sub" style="margin-bottom:12px;font-size:13px">Le ricette che contengono questi ingredienti verranno nascoste ovunque — anche nel piano settimanale e nel casuale.</p>
+          <div class="chips esclusi-preset" id="esclusi-preset"></div>
+          <div class="esclusi-add">
+            <input id="esclusi-input" type="text" placeholder="Scrivi un ingrediente da evitare…" autocomplete="off" />
+            <button class="btn-spesa-add" id="esclusi-add-btn">＋</button>
+          </div>
+          <div class="esclusi-lista" id="esclusi-lista"></div>
+        </div>
+      </div>
+
+      <div class="filtri-bar">
+        <input class="cerca-input" type="search" id="cerca-ricette" placeholder="Cerca per nome o ingrediente…" autocomplete="off" />
+        <div class="chips" id="chips-tempo">
+          <button class="chip active" data-filtro="tutto">Tutte</button>
+          <button class="chip" data-filtro="20">≤ 20 min</button>
+          <button class="chip" data-filtro="30">≤ 30 min</button>
+          <button class="chip" data-filtro="pref">♡ Preferite</button>
+          <button class="chip" data-filtro="pasta">Pasta</button>
+          <button class="chip" data-filtro="cereali">Cereali</button>
+          <button class="chip" data-filtro="legumi">Legumi</button>
+          <button class="chip" data-filtro="uova">Uova</button>
+          <button class="chip" data-filtro="comfort">Comfort</button>
+          <button class="chip" data-filtro="leggero">Leggero</button>
+          <button class="chip" data-filtro="speziato">Speziato</button>
+          <button class="chip" data-filtro="senza cottura">Senza cottura</button>
+        </div>
+      </div>
+      <div id="griglia-ricette"></div>
+    </div>
+
+    <!-- TAB SPESA -->
+    <div id="tab-spesa" class="tab-content">
+      <div id="area-spesa"></div>
+    </div>
+
+    <!-- TAB SETTIMANA -->
+    <div id="tab-settimana" class="tab-content">
+      <div id="area-settimana"></div>
+    </div>
+
+    <p class="piedino">Il menù cambia ogni giorno · tutte le ricette sono vegetariane</p>
+  </div>
+
+  <!-- Modal selezione ricetta piano -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <div class="etichetta" style="margin-bottom:0">Scegli una ricetta</div>
+        <button class="modal-close" id="modal-close">✕</button>
+      </div>
+      <div class="modal-search">
+        <input class="cerca-input" type="search" id="modal-cerca" placeholder="Cerca ricetta…" autocomplete="off" />
+      </div>
+      <div class="modal-filtri">
+        <div class="chips" id="modal-chips"></div>
+      </div>
+      <div id="modal-lista"></div>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

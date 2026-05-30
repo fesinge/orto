@@ -1,0 +1,38 @@
+ORTO — la tua cucina vegetariana
+=================================
+
+COME APRIRLA
+------------
+Apri la cartella "orto" e fai doppio click su "index.html".
+Si apre nel browser. Non serve internet, non serve installare niente.
+
+(Se vuoi tenerla comoda: trascina "index.html" sul desktop come
+collegamento, oppure salvala tra i preferiti del browser.)
+
+COSA FA
+-------
+1. MENÙ DEL GIORNO — in alto trovi colazione, pranzo, cena e spuntino
+   vegetariani. Cambia automaticamente ogni giorno.
+
+2. SORPRENDIMI — premi il bottone per una ricetta casuale, con
+   ingredienti e procedimento. Premilo di nuovo per cambiarla.
+
+3. NON HO QUESTI INGREDIENTI — sotto ogni ricetta. Premilo, scrivi
+   quello che hai davvero in cucina (es. "uova, spinaci, feta, riso")
+   e l'app:
+     • ti crea una ricetta su misura con i tuoi ingredienti
+     • ti mostra le ricette del ricettario più adatte, segnando
+       cosa ti manca da comprare.
+
+STRUTTURA DELLE CARTELLE
+------------------------
+orto/
+  index.html        ← la pagina da aprire
+  css/style.css     ← lo stile
+  js/data.js        ← menù e ricette
+  js/app.js         ← la logica
+
+Vuoi aggiungere ricette tue? Aprile in "js/data.js" e copia il
+formato di una ricetta esistente.
+
+Buona cucina! 🌿
