@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Il Mio Orto Veg</title>
-  <link rel="stylesheet" href="style.css?v=20260530-7" />
-  <script src="i18n.js?v=20260530-7"></script>
+  <link rel="stylesheet" href="style.css?v=20260601-14" />
+  <script src="i18n.js?v=20260601-14"></script>
 </head>
 <body>
   <div class="wrap">
@@ -38,13 +38,16 @@
     <!-- TAB OGGI -->
     <div id="tab-oggi" class="tab-content active">
       <p class="tab-desc" id="desc-tab-oggi">Qui trovi il menu del giorno e una ricetta casuale con un click.</p>
-      <section class="menu">
+      <div class="today-quick-actions">
+        <button class="btn btn-primary" id="btn-random">🎲  Sorprendimi con una ricetta</button>
+        <button class="btn btn-ghost" id="btn-open-week">Apri planner settimanale</button>
+      </div>
+      <section class="menu today-menu-card">
         <div class="etichetta" id="menu-data">Menù del giorno</div>
         <div id="menu-tema">—</div>
         <div id="menu-righe"></div>
       </section>
       <div id="area-menu-ricetta"></div>
-      <button class="btn btn-primary" id="btn-random">🎲  Sorprendimi con una ricetta</button>
       <div id="area-ricetta"></div>
       <div id="area-swap"></div>
     </div>
@@ -194,7 +197,7 @@
       </div>
     </div>
   </div>
-  <script src="data.js?v=20260530-7"></script>
-  <script src="app.js?v=20260530-7"></script>
+  <script src="data.js?v=20260601-14"></script>
+  <script src="app.js?v=20260601-14"></script>
 </body>
 </html>

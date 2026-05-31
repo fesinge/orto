@@ -11,6 +11,16 @@ const el = (tag, cls, html) => {
   if (html !== undefined) n.innerHTML = html;
   return n;
 };
+const setText = (sel, text) => {
+  const n = $(sel);
+  if (n) n.textContent = text;
+  return n;
+};
+const setHtml = (sel, html) => {
+  const n = $(sel);
+  if (n) n.innerHTML = html;
+  return n;
+};
 const norm = (s) =>
   s.toLowerCase().trim()
     .replace(/à/g, "a").replace(/è|é/g, "e").replace(/ì/g, "i")
@@ -29,6 +39,11 @@ const TUTTI_TAG = [
   { id: "speziato",      tKey: "chip_speziato", cls: "tag-speziato"     },
 ];
 const FILTRI_BASE = new Set(["tutto", "20", "30", "pref"]);
+// Mappa volutamente strict: chip RICETTA solo con corrispondenza sicura 1:1.
+const MENU_RICETTA_PER_SLOT = {
+  "1:cena": "Peperoni ripieni di riso ed erbe",
+  "2:pranzo": "Zuppa cremosa di pomodoro e cannellini",
+};
 
 /* ---------- CODICI PREMIUM (cambia questi dopo ogni pagamento) ---------- */
 const CODICI_PREMIUM = new Set(["ORTO-PREMIUM", "MIOORTO2024", "VEGPRO-ONE"]);
@@ -129,8 +144,14 @@ const t = key => {
   return src[key] !== undefined ? src[key] : (TESTI.it[key] || key);
 };
 
-function getRicette()  { return stato.lang === "en" ? RICETTE_EN : RICETTE; }
-function getMenu()     { return stato.lang === "en" ? MENU_EN : MENU_GIORNO; }
+function getRicette()  {
+  const hasEn = typeof RICETTE_EN !== "undefined";
+  return stato.lang === "en" && hasEn ? RICETTE_EN : RICETTE;
+}
+function getMenu()     {
+  const hasEn = typeof MENU_EN !== "undefined";
+  return stato.lang === "en" && hasEn ? MENU_EN : MENU_GIORNO;
+}
 
 function getRicettaLocalizzata(titoloIT) {
   const custom = stato.ricetteCustom.find(r => r.titolo === titoloIT);
@@ -152,8 +173,8 @@ function switchLang(lang) {
     const textNode = [...btn.childNodes].find(n => n.nodeType === 3);
     if (textNode) textNode.textContent = t(key) + " ";
   });
-  $("#tagline").textContent = t("tagline");
-  $(".piedino").textContent = t("footer");
+  setText("#tagline", t("tagline"));
+  setText(".piedino", t("footer"));
   renderTabDescrizioni();
 
   // aggiorna chip griglia ricette
@@ -169,10 +190,11 @@ function switchLang(lang) {
 
   // re-render
   menuRicettaAttiva = null;
-  $("#area-menu-ricetta").innerHTML = "";
-  $("#area-ricetta").innerHTML = "";
-  $("#area-swap").innerHTML = "";
-  $("#btn-random").textContent = t("btn_random");
+  setHtml("#area-menu-ricetta", "");
+  setHtml("#area-ricetta", "");
+  setHtml("#area-swap", "");
+  setText("#btn-random", t("btn_random"));
+  setText("#btn-open-week", t("btn_open_week"));
   renderMenu();
   aggiornaBadge();
   if (stato.tab === "ricette")   { renderEsclusi(); renderGrigliaRicette(); }
@@ -182,14 +204,20 @@ function switchLang(lang) {
 
 function renderTabDescrizioni() {
   const m = [
-    ["#desc-tab-oggi", "desc_tab_oggi"],
-    ["#desc-tab-ricette", "desc_tab_ricette"],
-    ["#desc-tab-spesa", "desc_tab_spesa"],
-    ["#desc-tab-settimana", "desc_tab_settimana"],
+    ["#desc-tab-oggi", "desc_tab_oggi", "focus_oggi"],
+    ["#desc-tab-ricette", "desc_tab_ricette", "focus_ricette"],
+    ["#desc-tab-spesa", "desc_tab_spesa", "focus_spesa"],
+    ["#desc-tab-settimana", "desc_tab_settimana", "focus_settimana"],
   ];
-  m.forEach(([sel, key]) => {
+  m.forEach(([sel, key, goalKey]) => {
     const node = $(sel);
-    if (node) node.textContent = t(key);
+    if (!node) return;
+    node.innerHTML = "";
+    node.appendChild(document.createTextNode(t(key) + " "));
+    const goal = document.createElement("span");
+    goal.className = "tab-desc-goal";
+    goal.textContent = `${t("focus_kicker")}: ${t(goalKey)}`;
+    node.appendChild(goal);
   });
 }
 
@@ -518,10 +546,11 @@ function ingredientiProblematici(r) {
 function renderEsclusi() {
   const lista = $("#esclusi-lista");
   const count = $("#esclusi-count");
+  const presetContainer = $("#esclusi-preset");
+  if (!lista || !count || !presetContainer) return;
   lista.innerHTML = "";
   count.textContent = stato.esclusi.size > 0 ? stato.esclusi.size : "";
 
-  const presetContainer = $("#esclusi-preset");
   presetContainer.innerHTML = "";
   PRESET_ESCLUSI.forEach(p => {
     const attivo = p.termini.some(te => stato.esclusi.has(te));
@@ -543,12 +572,14 @@ function renderEsclusi() {
     lista.appendChild(tag);
   });
 
-  $("#esclusi-panel .piano-filtri-titolo").textContent = t("esclusi_titolo");
-  $("#esclusi-panel .ricetta-sub").innerHTML = t("esclusi_desc");
-  $("#esclusi-input").placeholder = t("esclusi_placeholder");
+  setText("#esclusi-panel .piano-filtri-titolo", t("esclusi_titolo"));
+  setHtml("#esclusi-panel .ricetta-sub", t("esclusi_desc"));
+  const exclInput = $("#esclusi-input");
+  if (exclInput) exclInput.placeholder = t("esclusi_placeholder");
 }
 
 function aggiungiEscluso(input) {
+  if (!input) return;
   const val = norm(input.value).trim();
   if (!val || val.length < 2) return;
   val.split(/[,;\s]+/).filter(w => w.length >= 2).forEach(w => stato.esclusi.add(w));
@@ -559,7 +590,7 @@ function aggiungiEscluso(input) {
 /* ---------- BADGE ---------- */
 function aggiornaBadge() {
   const n = stato.spesa.filter(i => !i.spuntato).length;
-  $("#badge-spesa").textContent = n > 0 ? n : "";
+  setText("#badge-spesa", n > 0 ? n : "");
 }
 
 function aggiornaToggleFiltriLabel() {
@@ -970,18 +1001,19 @@ function renderOnboardingStep() {
   const steps = ONBOARDING[stato.lang] || ONBOARDING.it;
   const idx = Math.max(0, Math.min(stato.onboardingStep, steps.length - 1));
   const step = steps[idx];
-  $("#onboard-label").textContent = stato.lang === "en" ? "Welcome" : "Benvenuto";
-  $("#onboard-step").textContent = `${idx + 1}/${steps.length}`;
-  $("#onboard-title").textContent = step.title;
-  $("#onboard-text").textContent = step.text;
-  $("#onboard-skip").textContent = stato.lang === "en" ? "Skip" : "Salta";
-  $("#onboard-next").textContent = idx === steps.length - 1
+  setText("#onboard-label", stato.lang === "en" ? "Welcome" : "Benvenuto");
+  setText("#onboard-step", `${idx + 1}/${steps.length}`);
+  setText("#onboard-title", step.title);
+  setText("#onboard-text", step.text);
+  setText("#onboard-skip", stato.lang === "en" ? "Skip" : "Salta");
+  setText("#onboard-next", idx === steps.length - 1
     ? (stato.lang === "en" ? "Start" : "Inizia")
-    : (stato.lang === "en" ? "Next" : "Avanti");
+    : (stato.lang === "en" ? "Next" : "Avanti"));
 }
 
 function chiudiOnboarding(completato = true) {
-  $("#modal-onboarding").classList.add("hidden");
+  const modal = $("#modal-onboarding");
+  if (modal) modal.classList.add("hidden");
   if (completato) localStorage.setItem("orto-onboarded", "1");
 }
 
@@ -997,7 +1029,9 @@ function prossimoOnboarding() {
 
 function apriOnboarding() {
   stato.onboardingStep = 0;
-  $("#modal-onboarding").classList.remove("hidden");
+  const modal = $("#modal-onboarding");
+  if (!modal) return;
+  modal.classList.remove("hidden");
   renderOnboardingStep();
 }
 
@@ -1027,16 +1061,10 @@ function ricetteFiltratePerTag(pool, filtri) {
 }
 
 /* ---------- MATCHING MENU → RICETTE ---------- */
-function trovRicettaSimile(testo) {
-  const words = norm(testo).split(" ").filter(w => w.length > 3);
-  if (words.length === 0) return null;
-  let best = null, bestScore = 0;
-  getRicette().forEach(r => {
-    const hay = norm(r.titolo + " " + r.ingredienti.map(i => i.t).join(" "));
-    const score = words.filter(w => hay.includes(w)).length / words.length;
-    if (score > bestScore) { bestScore = score; best = r; }
-  });
-  return bestScore >= 0.32 ? best : null;
+function trovRicettaDaSlotMenu(menuIdx, pastoKey) {
+  const titoloBySlot = MENU_RICETTA_PER_SLOT[`${menuIdx}:${pastoKey}`];
+  if (titoloBySlot) return getRicettaLocalizzata(titoloBySlot);
+  return null;
 }
 
 let menuRicettaAttiva = null;
@@ -1056,26 +1084,30 @@ function renderMenu() {
   const oggi = new Date();
   const inizio = new Date(oggi.getFullYear(), 0, 0);
   const giorno = Math.floor((oggi - inizio) / 86400000);
-  const m = getMenu()[giorno % getMenu().length];
+  const menuIdx = giorno % getMenu().length;
+  const m = getMenu()[menuIdx];
+  const dataNode = $("#menu-data");
+  const temaNode = $("#menu-tema");
+  const box = $("#menu-righe");
+  if (!dataNode || !temaNode || !box) return;
 
   const data = oggi.toLocaleDateString(stato.lang === "en" ? "en-GB" : "it-IT", {
     weekday: "long", day: "numeric", month: "long",
   });
-  $("#menu-data").textContent = t("menu_label") + " · " + data;
-  $("#menu-tema").textContent = m.tema;
+  dataNode.textContent = t("menu_label") + " · " + data;
+  temaNode.textContent = m.tema;
 
   const righe = [
-    [t("pasto_col"), m.colazione],
-    [t("pasto_pra"), m.pranzo],
-    [t("pasto_cen"), m.cena],
-    [t("pasto_spu"), m.spuntino],
+    ["colazione", t("pasto_col"), m.colazione],
+    ["pranzo", t("pasto_pra"), m.pranzo],
+    ["cena", t("pasto_cen"), m.cena],
+    ["spuntino", t("pasto_spu"), m.spuntino],
   ];
-  const box = $("#menu-righe");
   box.innerHTML = "";
-  righe.forEach(([k, v]) => {
+  righe.forEach(([pastoKey, k, v]) => {
     const r = el("div", "menu-riga");
     r.appendChild(el("div", "menu-pasto", k));
-    const ricCorr = trovRicettaSimile(v);
+    const ricCorr = trovRicettaDaSlotMenu(menuIdx, pastoKey);
     if (ricCorr) {
       const btn = el("button", "menu-piatto-btn");
       btn.innerHTML = `<span>${v}</span><span class="menu-link-ico">${t("ricetta_label")}</span>`;
@@ -1506,22 +1538,29 @@ function renderSpesa() {
   area.appendChild(spesaSummary);
 
   const azioni = el("div", "spesa-azioni fadein");
-  const pdfBtn = el("button", "btn-sm" + (stato.premium ? "" : " btn-locked"), stato.lang === "en" ? "📄 Export PDF" : "📄 Esporta PDF");
-  pdfBtn.onclick = stampaListaSpesa;
-  azioni.appendChild(pdfBtn);
   const ottBtn = el("button", "btn-sm btn-sm-solid", stato.lang === "en" ? "✦ Optimise list" : "✦ Ottimizza lista");
   ottBtn.title = stato.lang === "en" ? "Merge duplicate ingredients across recipes" : "Unisce gli stessi ingredienti di ricette diverse";
   ottBtn.onclick = ottimizzaLista;
   azioni.appendChild(ottBtn);
-  const copiaBtn = el("button", "btn-sm", t("btn_copia"));
-  copiaBtn.onclick = copiaLista;
-  azioni.appendChild(copiaBtn);
   const toggleAllBtn = el("button", "btn-sm", statsSpesa.completati === statsSpesa.totale ? t("btn_deseleziona_tutti") : t("btn_spunta_tutti"));
   toggleAllBtn.onclick = () => impostaSpuntaTutti(statsSpesa.completati !== statsSpesa.totale);
   azioni.appendChild(toggleAllBtn);
+
+  const more = el("details", "azioni-secondarie");
+  const sum = el("summary", "", t("btn_more_options"));
+  more.appendChild(sum);
+  const moreBox = el("div", "azioni-secondarie-box");
+  const pdfBtn = el("button", "btn-sm" + (stato.premium ? "" : " btn-locked"), stato.lang === "en" ? "📄 Export PDF" : "📄 Esporta PDF");
+  pdfBtn.onclick = stampaListaSpesa;
+  moreBox.appendChild(pdfBtn);
+  const copiaBtn = el("button", "btn-sm", t("btn_copia"));
+  copiaBtn.onclick = copiaLista;
+  moreBox.appendChild(copiaBtn);
   const svuotaBtn = el("button", "btn-sm", t("btn_svuota_lista"));
   svuotaBtn.onclick = svuotaLista;
-  azioni.appendChild(svuotaBtn);
+  moreBox.appendChild(svuotaBtn);
+  more.appendChild(moreBox);
+  azioni.appendChild(more);
   area.appendChild(azioni);
   const fonti = {};
   stato.spesa.forEach(item => {
@@ -1790,21 +1829,28 @@ function renderPiano() {
   area.innerHTML = "";
 
   const hdr = el("div", "piano-header");
-  const autoBtn = el("button", "btn-sm", t("btn_auto"));
-  autoBtn.onclick = riempiPianoAuto;
-  hdr.appendChild(autoBtn);
   const smartBtn = el("button", "btn-sm" + (stato.premium ? "" : " btn-locked"), t("btn_auto_smart"));
   smartBtn.onclick = avviaPlannerIntelligente;
   hdr.appendChild(smartBtn);
-  const mealPrepBtn = el("button", "btn-sm" + (stato.premium ? "" : " btn-locked"), t("btn_mealprep"));
-  mealPrepBtn.onclick = avviaMealPrep;
-  hdr.appendChild(mealPrepBtn);
+  const autoBtn = el("button", "btn-sm", t("btn_auto"));
+  autoBtn.onclick = riempiPianoAuto;
+  hdr.appendChild(autoBtn);
   const spesaBtn = el("button", "btn-sm", t("btn_sett_spesa"));
   spesaBtn.onclick = aggiungiSettimanaAllaSpesa;
   hdr.appendChild(spesaBtn);
+
+  const more = el("details", "azioni-secondarie");
+  const sum = el("summary", "", t("btn_more_options"));
+  more.appendChild(sum);
+  const moreBox = el("div", "azioni-secondarie-box");
+  const mealPrepBtn = el("button", "btn-sm" + (stato.premium ? "" : " btn-locked"), t("btn_mealprep"));
+  mealPrepBtn.onclick = avviaMealPrep;
+  moreBox.appendChild(mealPrepBtn);
   const resetBtn = el("button", "btn-sm", t("btn_svuota_piano"));
   resetBtn.onclick = svuotaPiano;
-  hdr.appendChild(resetBtn);
+  moreBox.appendChild(resetBtn);
+  more.appendChild(moreBox);
+  hdr.appendChild(more);
   area.appendChild(hdr);
 
   const filtriBox = el("div", "piano-filtri");
@@ -2040,19 +2086,27 @@ function renderModalLista() {
 
 /* ---------- AVVIO ---------- */
 document.addEventListener("DOMContentLoaded", () => {
+  const on = (sel, ev, fn) => {
+    const n = $(sel);
+    if (n) n.addEventListener(ev, fn);
+  };
+
   // applica lingua salvata ai tab
   const langInit = stato.lang;
   if (langInit === "en") {
     $$(".lang-btn").forEach(b => b.classList.toggle("active", b.dataset.lang === "en"));
-    $("#tagline").textContent = TESTI.en.tagline;
-    $(".piedino").textContent = TESTI.en.footer;
+    setText("#tagline", TESTI.en.tagline);
+    setText(".piedino", TESTI.en.footer);
   }
   renderTabDescrizioni();
+  setText("#btn-random", t("btn_random"));
+  setText("#btn-open-week", t("btn_open_week"));
 
   renderMenu();
   aggiornaBadge();
 
-  $("#btn-random").addEventListener("click", ricettaCasuale);
+  on("#btn-random", "click", ricettaCasuale);
+  on("#btn-open-week", "click", () => switchTab("settimana"));
 
   $$(".tab").forEach(te => te.addEventListener("click", () => switchTab(te.dataset.tab)));
 
@@ -2063,43 +2117,46 @@ document.addEventListener("DOMContentLoaded", () => {
     renderFiltriExtra();
     renderGrigliaRicette();
   }));
-  $("#toggle-chip-extra").addEventListener("click", () => {
+  on("#toggle-chip-extra", "click", () => {
     stato.mostraFiltriExtra = !stato.mostraFiltriExtra;
     renderFiltriExtra();
   });
-  $("#reset-filters").addEventListener("click", resetFiltriRicette);
+  on("#reset-filters", "click", resetFiltriRicette);
 
-  $("#cerca-ricette").addEventListener("input", e => { stato.cercaTesto = e.target.value; renderGrigliaRicette(); });
-  $("#cerca-ricette").placeholder = t("cerca_placeholder");
+  on("#cerca-ricette", "input", e => { stato.cercaTesto = e.target.value; renderGrigliaRicette(); });
+  if ($("#cerca-ricette")) $("#cerca-ricette").placeholder = t("cerca_placeholder");
 
-  $("#esclusi-toggle").addEventListener("click", () => $("#esclusi-panel").classList.toggle("aperto"));
-  $("#esclusi-add-btn").addEventListener("click", () => aggiungiEscluso($("#esclusi-input")));
-  $("#esclusi-input").addEventListener("keydown", e => { if (e.key === "Enter") aggiungiEscluso(e.target); });
+  on("#esclusi-toggle", "click", () => {
+    const panel = $("#esclusi-panel");
+    if (panel) panel.classList.toggle("aperto");
+  });
+  on("#esclusi-add-btn", "click", () => aggiungiEscluso($("#esclusi-input")));
+  on("#esclusi-input", "keydown", e => { if (e.key === "Enter") aggiungiEscluso(e.target); });
 
-  $("#modal-overlay").addEventListener("click", e => { if (e.target === $("#modal-overlay")) chiudiModal(); });
-  $("#modal-close").addEventListener("click", chiudiModal);
+  on("#modal-overlay", "click", e => { if (e.target === $("#modal-overlay")) chiudiModal(); });
+  on("#modal-close", "click", chiudiModal);
   document.addEventListener("keydown", e => { if (e.key === "Escape") chiudiModal(); });
-  $("#modal-cerca").addEventListener("input", e => { stato.modalCerca = e.target.value; renderModalLista(); });
+  on("#modal-cerca", "input", e => { stato.modalCerca = e.target.value; renderModalLista(); });
 
   $$(".lang-btn").forEach(b => b.addEventListener("click", () => switchLang(b.dataset.lang)));
 
   // premium modal
-  $("#premium-close").addEventListener("click", () => $("#modal-premium").classList.add("hidden"));
-  $("#modal-premium").addEventListener("click", e => { if (e.target === $("#modal-premium")) $("#modal-premium").classList.add("hidden"); });
-  $("#premium-code-btn").addEventListener("click", verificaESblocca);
-  $("#premium-code-input").addEventListener("keydown", e => { if (e.key === "Enter") verificaESblocca(); });
+  on("#premium-close", "click", () => $("#modal-premium").classList.add("hidden"));
+  on("#modal-premium", "click", e => { if (e.target === $("#modal-premium")) $("#modal-premium").classList.add("hidden"); });
+  on("#premium-code-btn", "click", verificaESblocca);
+  on("#premium-code-input", "keydown", e => { if (e.key === "Enter") verificaESblocca(); });
 
   // form ricetta personale
-  $("#form-ricetta-close").addEventListener("click", chiudiFormRicetta);
-  $("#modal-form-ricetta").addEventListener("click", e => { if (e.target === $("#modal-form-ricetta")) chiudiFormRicetta(); });
-  $("#fr-salva").addEventListener("click", salvaRicettaCustom);
-  $("#fr-annulla").addEventListener("click", chiudiFormRicetta);
+  on("#form-ricetta-close", "click", chiudiFormRicetta);
+  on("#modal-form-ricetta", "click", e => { if (e.target === $("#modal-form-ricetta")) chiudiFormRicetta(); });
+  on("#fr-salva", "click", salvaRicettaCustom);
+  on("#fr-annulla", "click", chiudiFormRicetta);
 
   // onboarding
-  $("#onboard-close").addEventListener("click", () => chiudiOnboarding(true));
-  $("#onboard-skip").addEventListener("click", () => chiudiOnboarding(true));
-  $("#onboard-next").addEventListener("click", prossimoOnboarding);
-  $("#modal-onboarding").addEventListener("click", e => {
+  on("#onboard-close", "click", () => chiudiOnboarding(true));
+  on("#onboard-skip", "click", () => chiudiOnboarding(true));
+  on("#onboard-next", "click", prossimoOnboarding);
+  on("#modal-onboarding", "click", e => {
     if (e.target === $("#modal-onboarding")) chiudiOnboarding(true);
   });
 

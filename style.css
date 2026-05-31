@@ -11,6 +11,8 @@
   --sage: #7C9070;
   --gold: #B0863C;
   --line: #D9CFB8;
+  --today-ink: #2E4A3A;
+  --today-ink-2: #446853;
   --serif: Georgia, 'Times New Roman', serif;
   --sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
@@ -91,12 +93,27 @@ h1 {
 .tab-desc {
   font-size: 14px;
   line-height: 1.45;
-  color: var(--ink-soft);
-  background: var(--paper2);
+  color: #3f5348;
+  background: #fffcf6;
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 10px 12px;
   margin: 0 0 14px;
+}
+.tab-desc-goal {
+  display: block;
+  margin-top: 6px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.today-quick-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.today-quick-actions .btn {
+  width: auto;
+  flex: 1;
 }
 
 /* ── ETICHETTE ── */
@@ -110,36 +127,41 @@ h1 {
 
 /* ── MENÙ DEL GIORNO ── */
 .menu {
-  background: var(--ink); color: var(--bg);
-  border-radius: 20px; padding: 28px 26px; margin-bottom: 26px;
+  background: linear-gradient(160deg, var(--today-ink) 0%, var(--today-ink-2) 100%);
+  color: #F6F2E8;
+  border: 1px solid rgba(246,242,232,0.22);
+  border-radius: 20px;
+  padding: 24px 22px;
+  margin-bottom: 22px;
 }
-.menu .etichetta { color: var(--gold); }
+.menu .etichetta { color: #E6C67A; }
 #menu-tema {
-  font-family: var(--serif); font-size: 30px; font-weight: 600;
-  color: var(--bg); margin: 8px 0 18px;
+  font-family: var(--serif); font-size: 29px; font-weight: 600;
+  color: #FFF9ED; margin: 8px 0 16px;
 }
 .menu-riga {
   display: flex; gap: 14px; padding: 11px 0;
-  border-top: 1px solid rgba(244,238,224,0.18);
+  border-top: 1px solid rgba(246,242,232,0.24);
 }
 .menu-pasto {
   font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--sage); font-weight: 600; min-width: 86px; padding-top: 3px;
+  color: #CFE2D4; font-weight: 700; min-width: 86px; padding-top: 3px;
 }
-.menu-piatto { font-size: 15.5px; line-height: 1.45; color: var(--bg); }
+.menu-piatto { font-size: 15.5px; line-height: 1.45; color: #F6F2E8; }
 
 .menu-piatto-btn {
   background: none; border: none; padding: 0; text-align: left;
   font-family: var(--sans); font-size: 15.5px; line-height: 1.45;
-  color: var(--bg); cursor: pointer;
+  color: #F6F2E8; cursor: pointer;
   display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap;
   transition: opacity .15s;
 }
 .menu-piatto-btn:hover { opacity: 0.75; }
 .menu-link-ico {
   font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-  font-weight: 700; color: var(--gold); opacity: 0.85;
-  border: 1px solid rgba(176,134,60,0.4); border-radius: 4px;
+  font-weight: 700; color: #F7D68D;
+  border: 1px solid rgba(247,214,141,0.5); border-radius: 4px;
+  background: rgba(247,214,141,0.08);
   padding: 1px 5px; flex-shrink: 0; vertical-align: middle;
 }
 
@@ -654,6 +676,36 @@ textarea:focus { outline: none; border-color: var(--sage); }
   flex: 1;
   min-width: 180px;
 }
+.azioni-secondarie {
+  width: 100%;
+}
+.azioni-secondarie summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 9px 12px;
+  min-height: 42px;
+  border-radius: 10px;
+  border: 1.5px dashed var(--line);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  background: rgba(124,144,112,0.06);
+}
+.azioni-secondarie summary::-webkit-details-marker { display: none; }
+.azioni-secondarie[open] summary {
+  border-style: solid;
+  background: rgba(124,144,112,0.12);
+}
+.azioni-secondarie-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.azioni-secondarie-box .btn-sm {
+  flex: 1;
+  min-width: 150px;
+}
 .piano-giorno { margin-bottom: 22px; }
 .piano-giorno-nome {
   font-family: var(--serif); font-size: 20px; font-weight: 600;
@@ -944,6 +996,8 @@ textarea:focus { outline: none; border-color: var(--sage); }
   .piano-slot-open { margin-top: 0; margin-left: auto; }
   .tabs { top: 8px; }
   .tab { font-size: 12px; padding: 9px 4px; }
+  .today-quick-actions { flex-direction: column; }
+  .today-quick-actions .btn { width: 100%; }
   .feedback-toast { max-width: calc(100vw - 20px); white-space: normal; }
   .onboarding-title { font-size: 24px; }
   .onboarding-text { font-size: 15px; }
